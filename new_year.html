@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="VN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Gesture Fireworks - Fixed Camera</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Arial', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: white;
+        }
+
+        #countdown-display {
+            font-size: 8vw;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            background: linear-gradient(to bottom, #fff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            transition: all 0.5s ease;
+        }
+
+        #sub-text {
+            font-size: 2vw;
+            margin-top: 20px;
+            color: #d4af37;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        #start-btn {
+            pointer-events: auto;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffd700;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #ffd700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+            font-weight: bold;
+            z-index: 20;
+            display: none; /* Ẩn đi chờ AI load xong mới hiện */
+        }
+
+        #start-btn:hover {
+            background: #ffd700;
+            color: #000;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            transform: scale(1.05);
+        }
+
+        #gesture-hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 0 0 10px #00ff00;
+            z-index: 11;
+            pointer-events: none;
+            display: none;
+        }
+
+        #loader {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease-out;
+            color: #d4af37;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffd700;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #webcam-wrapper {
+            position: absolute; top: 0; left: 0;
+            width: 0px; height: 0px; opacity: 0; pointer-events: none;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<div id="loader">
+    <div class="spinner"></div>
+    <div id="loading-text">Đang tải bộ não AI...</div>
+</div>
+
+<div id="canvas-container"></div>
+
+<div id="ui-layer">
+    <div id="countdown-display">LOADING...</div>
+    <div id="sub-text">Vui lòng đợi giây lát</div>
+    <button id="start-btn">Kích Hoạt Camera</button>
+</div>
+
+<div id="gesture-hint">👉 Giơ ngón trỏ lên để thấy TÂM NGẮM, duỗi thẳng để BẮN! 👈</div>
+
+<div id="webcam-wrapper">
+    <video id="webcam" autoplay playsinline></video>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+
+    // --- CẤU HÌNH ---
+    let isModeActive = false;
+    let lastFireTime = 0;
+    const FIRE_COOLDOWN = 150;
+
+    // --- THREEJS GLOBALS ---
+    let scene, camera, renderer, composer;
+    let fireworks = [];
+    let cursorMesh;
+    let clock = new THREE.Clock();
+
+    // --- MEDIAPIPE GLOBALS ---
+    let handLandmarker, video;
+    let detecting = false;
+
+    // =============================================================================
+    // 1. THREEJS SETUP
+    // =============================================================================
+
+    function initThree() {
+        const container = document.getElementById('canvas-container');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05050a);
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 50;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 2.0;
+        bloomPass.radius = 0.5;
+
+        composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        const cursorGeo = new THREE.RingGeometry(0.5, 0.7, 32);
+        const cursorMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0 });
+        cursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
+        scene.add(cursorMesh);
+
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // --- Firework Class ---
+    class Firework {
+        constructor(startPos) {
+            this.isDead = false;
+            this.particles = [];
+            const particleCount = 100 + Math.random() * 50;
+
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const velocities = [];
+            const color = new THREE.Color();
+            color.setHSL(Math.random(), 1.0, 0.6);
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = startPos.x;
+                positions[i * 3 + 1] = startPos.y;
+                positions[i * 3 + 2] = startPos.z;
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const speed = 0.5 + Math.random() * 1.5;
+                velocities.push({
+                    x: speed * Math.sin(phi) * Math.cos(theta),
+                    y: speed * Math.sin(phi) * Math.sin(theta),
+                    z: speed * Math.cos(phi),
+                    life: 1.0 + Math.random() * 0.5,
+                    decay: 0.015 + Math.random() * 0.02
+                });
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const material = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+            this.points = new THREE.Points(geometry, material);
+            this.velocities = velocities;
+            scene.add(this.points);
+        }
+
+        update(dt) {
+            const positions = this.points.geometry.attributes.position.array;
+            const colors = this.points.geometry.attributes.color.array;
+            let aliveParticles = 0;
+            for (let i = 0; i < this.velocities.length; i++) {
+                const v = this.velocities[i];
+                if (v.life > 0) {
+                    positions[i*3] += v.x; positions[i*3 + 1] += v.y; positions[i*3 + 2] += v.z;
+                    v.y -= 0.02; v.x *= 0.98; v.y *= 0.98; v.z *= 0.98;
+                    v.life -= v.decay; aliveParticles++;
+                    const fade = Math.max(0, v.life);
+                    colors[i*3] *= fade; colors[i*3+1] *= fade; colors[i*3+2] *= fade;
+                }
+            }
+            this.points.geometry.attributes.position.needsUpdate = true;
+            this.points.geometry.attributes.color.needsUpdate = true;
+            if (aliveParticles === 0) {
+                this.isDead = true;
+                scene.remove(this.points);
+                this.points.geometry.dispose();
+                this.points.material.dispose();
+            }
+        }
+    }
+
+    function launchFirework(position) {
+        fireworks.push(new Firework(position));
+    }
+
+    // =============================================================================
+    // 2. LOGIC TẢI AI & CAMERA
+    // =============================================================================
+
+    const countdownDisplay = document.getElementById('countdown-display');
+    const subText = document.getElementById('sub-text');
+    const startBtn = document.getElementById('start-btn');
+    const loader = document.getElementById('loader');
+    const loadingText = document.getElementById('loading-text');
+
+    let targetDate = new Date();
+    targetDate.setHours(24, 0, 0, 0);
+
+    // BƯỚC 1: Tải AI ngay khi vào trang (Preload)
+    async function loadAIModel() {
+        try {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+            );
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numHands: 1
+            });
+
+            // Tải xong thì mới hiện nút Start
+            loader.style.opacity = 0;
+            setTimeout(() => loader.style.display = 'none', 800);
+
+            countdownDisplay.innerText = "SẴN SÀNG";
+            subText.innerText = "Hệ thống AI đã tải xong";
+            startBtn.style.display = 'block'; // Hiện nút
+
+        } catch (error) {
+            console.error(error);
+            loadingText.innerText = "Lỗi tải AI. Vui lòng refresh (F5)";
+            loadingText.style.color = "red";
+        }
+    }
+
+    // BƯỚC 2: Khi bấm nút thì chỉ việc bật Camera (Nhanh hơn)
+    startBtn.addEventListener('click', async () => {
+        if (!handLandmarker) {
+            alert("AI chưa tải xong, vui lòng đợi thêm chút!");
+            return;
+        }
+
+        // Xin quyền camera
+        if (navigator.mediaDevices?.getUserMedia) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video = document.getElementById('webcam');
+                video.srcObject = stream;
+                video.addEventListener("loadeddata", () => {
+                    // Camera đã lên hình
+                    detecting = true;
+                    predictWebcam();
+
+                    // Chuyển UI
+                    targetDate = new Date().getTime() - 1000;
+                    isModeActive = true;
+                    startBtn.style.display = 'none';
+                    document.getElementById('gesture-hint').style.display = 'block';
+                });
+            } catch (err) {
+                console.error(err);
+                alert("LỖI: Trình duyệt chặn Camera! \n1. Hãy chạy trên localhost (Live Server) \n2. Hoặc cho phép quyền truy cập camera trên thanh địa chỉ.");
+            }
+        } else {
+            alert("Trình duyệt của bạn không hỗ trợ Camera!");
+        }
+    });
+
+    function updateCountdown() {
+        if (!isModeActive) return;
+
+        const now = new Date();
+        const diff = targetDate - now;
+
+        if (diff <= 0) {
+            countdownDisplay.innerHTML = "HAPPY<br>NEW YEAR!";
+            subText.innerText = "Hãy dùng tay bắn pháo hoa!";
+            return;
+        }
+    }
+
+    // =============================================================================
+    // 3. XỬ LÝ NHẬN DIỆN
+    // =============================================================================
+
+    async function predictWebcam() {
+        if (!detecting) return;
+        let startTimeMs = performance.now();
+        if (video.currentTime > 0) {
+            const result = handLandmarker.detectForVideo(video, startTimeMs);
+            processHand(result);
+        }
+        requestAnimationFrame(predictWebcam);
+    }
+
+    function processHand(result) {
+        if (result.landmarks && result.landmarks.length > 0) {
+            const lm = result.landmarks[0];
+            const indexTip = lm[8];
+            const screenX = (1.0 - indexTip.x) * 2 - 1;
+            const screenY = - (indexTip.y * 2 - 1);
+            const vector = new THREE.Vector3(screenX, screenY, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = - camera.position.z / dir.z;
+            const worldPos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+            cursorMesh.position.copy(worldPos);
+            cursorMesh.material.opacity = 0.8;
+            cursorMesh.scale.set(1, 1, 1);
+
+            const wrist = lm[0];
+            const dIndex = Math.hypot(lm[8].x - wrist.x, lm[8].y - wrist.y);
+            const dMiddle = Math.hypot(lm[12].x - wrist.x, lm[12].y - wrist.y);
+            const dRing = Math.hypot(lm[16].x - wrist.x, lm[16].y - wrist.y);
+            const dPinky = Math.hypot(lm[20].x - wrist.x, lm[20].y - wrist.y);
+
+            const isIndexExtended = dIndex > 0.1;
+            const isOthersCurled = (dMiddle < dIndex * 0.85) && (dRing < dIndex * 0.85) && (dPinky < dIndex * 0.85);
+
+            if (isIndexExtended && isOthersCurled) {
+                cursorMesh.material.color.setHex(0xff0000);
+                cursorMesh.scale.set(1.5, 1.5, 1.5);
+                const now = performance.now();
+                if (now - lastFireTime > FIRE_COOLDOWN) {
+                    launchFirework(worldPos);
+                    lastFireTime = now;
+                    cursorMesh.scale.set(2.0, 2.0, 1.0);
+                }
+            } else {
+                cursorMesh.material.color.setHex(0x00ff00);
+            }
+        } else {
+            if(cursorMesh) cursorMesh.material.opacity = 0;
+        }
+    }
+
+    // =============================================================================
+    // MAIN LOOP
+    // =============================================================================
+
+    function init() {
+        initThree();
+        loadAIModel(); // Gọi hàm này để tải AI trước
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = clock.getDelta();
+        updateCountdown();
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+            fireworks[i].update(dt);
+            if (fireworks[i].isDead) {
+                fireworks.splice(i, 1);
+            }
+        }
+        composer.render();
+    }
+
+    init();
+</script>
+</body>
+</html>
