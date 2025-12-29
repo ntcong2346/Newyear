@@ -3,102 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Fireworks: Gesture Jerk & Touch</title>
+    <title>Fireworks: Giao Thừa 2026 - UET Edition</title>
+    <!-- Import Font: Cinzel (Sang trọng), Montserrat (Hiện đại), Dancing Script (Viết tay) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Dancing+Script:wght@700&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+
     <style>
         body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #000000;
-            font-family: 'Arial', sans-serif;
-            touch-action: none;
-            user-select: none;
+            margin: 0; overflow: hidden; background-color: #050A14; /* Midnight Blue */
+            font-family: 'Montserrat', sans-serif;
+            touch-action: none; user-select: none;
         }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
+        /* --- UI LAYER (Glassmorphism Vibe) --- */
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            color: white;
+            /* Lớp phủ mờ nhẹ tạo chiều sâu */
+            background: radial-gradient(circle at center, transparent 40%, rgba(5, 10, 20, 0.6) 100%);
         }
 
+        /* --- SCORE BOARD (Minimalist) --- */
+        #score-board {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 300;
+            font-size: 24px;
+            color: #F0E68C; /* Champagne Gold */
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.05); /* Siêu trong suốt */
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(240, 230, 140, 0.3);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 20px rgba(240, 230, 140, 0.1);
+            z-index: 20;
+            letter-spacing: 1px;
+        }
+        /* Icon quà tinh tế */
+        #score-board::before {
+            content: '🎁';
+            font-size: 20px;
+            filter: grayscale(20%) brightness(1.2);
+        }
+
+        /* --- BOSS HEALTH BAR -> ENERGY BAR (Soft & Dreamy) --- */
+        #boss-health-bar {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 450px;
+            height: 12px; /* Mỏng hơn, thanh thoát hơn */
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: none;
+            z-index: 20;
+            overflow: visible; /* Để hiện text bên ngoài */
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        /* Tên Boss - Giờ là "Quả Cầu Năm Mới" */
+        #boss-health-bar::before {
+            content: '✨ QUẢ CẦU NĂM MỚI ✨';
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Cinzel', serif;
+            color: #F0E68C;
+            font-size: 16px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(240, 230, 140, 0.5);
+            white-space: nowrap;
+        }
+
+        #boss-health-fill {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            /* Gradient Pastel: Tím -> Hồng -> Vàng */
+            background: linear-gradient(90deg, #D8BFD8, #FFB6C1, #F0E68C);
+            box-shadow: 0 0 15px rgba(255, 182, 193, 0.6);
+            transition: width 0.3s ease-out;
+        }
+
+        /* --- START SCREEN (Cinematic) --- */
         #countdown-display {
-            font-size: 8vw;
-            font-weight: bold;
+            font-family: 'Cinzel', serif;
+            font-size: 6vw; /* Nhỏ hơn xíu để sang */
+            color: #FFFFF0; /* Ivory White */
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            background: linear-gradient(to bottom, #fff, #ffd700);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-            transition: all 0.5s ease;
+            line-height: 1.4;
+            margin-bottom: 40px;
+            font-weight: 400;
+        }
+        #countdown-display span {
+            font-family: 'Dancing Script', cursive;
+            font-size: 4vw;
+            color: #F0E68C;
+            display: block;
+            margin-top: 10px;
         }
 
         #start-btn {
             pointer-events: auto;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #ffd700;
-            background: rgba(0,0,0,0.5);
-            border: 2px solid #ffd700;
+            padding: 15px 50px;
+            font-size: 18px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 300;
+            color: #F0E68C;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #F0E68C;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-            font-weight: bold;
-            z-index: 20;
+            box-shadow: 0 0 20px rgba(240, 230, 140, 0.1);
             display: none;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(4px);
         }
 
         #start-btn:hover {
-            background: #ffd700;
-            color: #000;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-            transform: scale(1.05);
+            background: rgba(240, 230, 140, 0.15);
+            box-shadow: 0 0 30px rgba(240, 230, 140, 0.4);
+            letter-spacing: 5px; /* Hiệu ứng mở rộng chữ */
         }
 
-        #gesture-hint {
-            position: absolute;
-            bottom: 30px;
-            width: 100%;
-            text-align: center;
-            color: #80bfff;
-            font-weight: bold;
-            font-size: 18px;
-            text-shadow: 0 0 10px #00ff00;
-            z-index: 11;
-            pointer-events: none;
-            display: none;
+        /* --- LOADERS (Minimal) --- */
+        #game-loader {
+            position: absolute; inset: 0;
+            background: #050A14;
+            z-index: 200; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
         }
-
-        #loader {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease-out;
-            color: #d4af37;
-        }
-
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #ffd700;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        .game-loader-bar {
+            width: 300px; height: 2px; /* Line mỏng */
+            background: rgba(255,255,255,0.1);
             margin-bottom: 20px;
         }
+        #game-loader-fill {
+            width: 0%; height: 100%;
+            background: #F0E68C;
+            box-shadow: 0 0 10px #F0E68C;
+            transition: width 0.1s linear;
+        }
+        #game-loader-text {
+            color: #888; font-family: 'Montserrat', sans-serif;
+            font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+        }
 
+        #initial-loader {
+            position: absolute; inset: 0; background: #050A14; z-index: 300;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #F0E68C; transition: opacity 1s ease; /* Fade chậm hơn */
+            font-family: 'Cinzel', serif; letter-spacing: 2px;
+        }
+        .spinner {
+            border: 2px solid rgba(240, 230, 140, 0.1); border-top: 2px solid #F0E68C;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1.5s linear infinite; margin-bottom: 20px;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        #webcam-wrapper {
-            position: absolute; top: 0; left: 0;
-            width: 0px; height: 0px; opacity: 0; pointer-events: none;
+        #gesture-hint {
+            position: absolute; bottom: 50px; width: 100%; text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-family: 'Montserrat', sans-serif; font-weight: 300; font-size: 14px;
+            letter-spacing: 1px;
+            z-index: 11; pointer-events: none; display: none;
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
         }
+
+        #webcam-wrapper { position: absolute; opacity: 0; pointer-events: none; }
     </style>
 
     <script type="importmap">
@@ -113,23 +197,29 @@
 </head>
 <body>
 
-<div id="loader">
+<div id="initial-loader">
     <div class="spinner"></div>
-    <div id="loading-text">Đang tải tài nguyên...</div>
+    <div>KHỞI TẠO KHÔNG GIAN...</div>
+</div>
+
+<div id="game-loader">
+    <div class="game-loader-bar">
+        <div id="game-loader-fill"></div>
+    </div>
+    <div id="game-loader-text">Đang chuẩn bị pháo hoa... 0%</div>
 </div>
 
 <div id="canvas-container"></div>
+<div id="score-board">0</div>
+<div id="boss-health-bar"><div id="boss-health-fill"></div></div>
 
 <div id="ui-layer">
-    <div id="countdown-display">LOADING...</div>
-    <button id="start-btn">Kích Hoạt Ngay</button>
+    <div id="countdown-display">KHOẢNH KHẮC GIAO THỪA<br><span>Cùng CLB Thuyết Trình</span></div>
+    <button id="start-btn">CHÂM NGÒI PHÁO HOA</button>
 </div>
 
-<div id="gesture-hint"> 👉 Ngắm bằng ngón trỏ, GIẬT MẠNH tay để bắn! 💥 </div>
-
-<div id="webcam-wrapper">
-    <video id="webcam" autoplay playsinline></video>
-</div>
+<div id="gesture-hint"> Ngón trỏ để ngắm • Giật tay để gửi lời chúc </div>
+<div id="webcam-wrapper"><video id="webcam" autoplay playsinline></video></div>
 
 <script type="module">
     import * as THREE from 'three';
@@ -138,365 +228,639 @@
     import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
-    // --- CẤU HÌNH ---
+    // --- CONFIG ---
     let isModeActive = false;
     let lastFireTime = 0;
-
-    // Cooldown thấp hơn một chút để cảm giác giật tay nhạy hơn
     const FIRE_COOLDOWN = 300;
-
-    // Ngưỡng giật tay: Nếu ngón tay di chuyển > 5% màn hình trong 1 khung hình thì coi là giật
-    // Tăng số này nếu thấy nhạy quá, giảm nếu thấy khó bắn
     const JERK_THRESHOLD = 0.05;
-
-    // Biến lưu vị trí ngón trỏ khung hình trước để tính vận tốc
     let previousIndexTip = null;
+    let score = 0;
 
-    // --- ÂM THANH ---
+    let nextBossThreshold = 10;
+    let isBossActive = false;
+    let bigBoss = null;
+    let celebrationText = null;
+    let giftBoxes = [];
+    let fireworks = [];
+    let stickers = [];
+
+    let lastGiftSpawnTime = 0;
+    const GIFT_SPAWN_RATE = 1500;
+    const STICKER_ICONS = ["❤️", "✨", "🌸", "🍀", "🎁", "⭐", "🥂", "🎶", "🌿", "💎"];
+
+    // Audio
     const bgMusic = new Audio('firework.mp3');
-    bgMusic.loop = false;
-    bgMusic.volume = 0.5;
-
+    bgMusic.loop = true; bgMusic.volume = 0.4;
     const fireworkSfx = new Audio('katty.mp3');
     fireworkSfx.volume = 0.6;
 
-    // --- THREEJS GLOBALS ---
+    // ThreeJS
     let scene, camera, renderer, composer;
-    let fireworks = [];
     let cursorMesh;
     let clock = new THREE.Clock();
     const raycaster = new THREE.Raycaster();
     const mouseVector = new THREE.Vector2();
 
-    // --- MEDIAPIPE GLOBALS ---
+    // AI
     let handLandmarker, video;
     let detecting = false;
 
-    // =============================================================================
-    // 1. THREEJS SETUP
-    // =============================================================================
+    // UI Elements
+    const scoreEl = document.getElementById('score-board');
+    const bossHpBar = document.getElementById('boss-health-bar');
+    const bossHpFill = document.getElementById('boss-health-fill');
 
+    // =============================================================================
+    // TEXTURE HELPERS (Elegant Style)
+    // =============================================================================
+    function createBoxTexture(emoji, isBoss) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // 1. NỀN (Trắng Ngà / Cream)
+        ctx.fillStyle = '#FFFFF0';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 2. VIỀN (Vàng Kim / Gold)
+        ctx.lineWidth = 30; // Viền mỏng hơn chút cho tinh tế
+        // Nếu là Boss (Quả cầu) thì viền đậm hơn
+        ctx.strokeStyle = isBoss ? '#FFD700' : '#D4AF37';
+        ctx.strokeRect(0, 0, 512, 512);
+
+        // 3. ICON
+        ctx.font = '280px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#333'; // Màu chữ đậm nhẹ
+        ctx.fillText(emoji, 256, 260);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    function createStickerTexture(emoji) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.font = '200px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        // Thêm shadow trắng cho sticker nổi trên nền tối
+        ctx.shadowColor = "white";
+        ctx.shadowBlur = 10;
+        ctx.fillText(emoji, 128, 128);
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function createTextTexture(text) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 2048; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // Dùng font có chân sang trọng
+        ctx.font = 'bold 140px "Times New Roman", serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+        // Glow nhẹ
+        ctx.shadowColor = "rgba(255, 215, 0, 0.8)";
+        ctx.shadowBlur = 20;
+
+        // Gradient Vàng Kim
+        const g = ctx.createLinearGradient(0,0,0,512);
+        g.addColorStop(0, "#FFFFF0"); // Trắng ngà
+        g.addColorStop(0.5, "#FFD700"); // Vàng
+        g.addColorStop(1, "#DAA520"); // Vàng đậm
+        ctx.fillStyle = g;
+
+        ctx.fillText(text, 1024, 256);
+
+        // Outline mỏng
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.strokeText(text, 1024, 256);
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // =============================================================================
+    // THREE SETUP
+    // =============================================================================
     function initThree() {
-        const container = document.getElementById('canvas-container');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x05050a);
+        // Nền tối Midnight Blue để tôn pháo hoa
+        scene.background = new THREE.Color(0x050A14);
 
         const loader = new THREE.TextureLoader();
-        loader.load('2Year.png', (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            scene.background = texture;
+        loader.load('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2072&auto=format&fit=crop', (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            scene.background = tex;
+            // Làm tối nền đi nhiều để tạo không gian đêm sâu thẳm
+            scene.backgroundIntensity = 0.15;
         });
 
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
         camera.position.z = 50;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const renderScene = new RenderPass(scene, camera);
+        const renderPass = new RenderPass(scene, camera);
+
+        // --- BLOOM CONFIG (Dreamy) ---
+        // Radius lớn hơn để tạo quầng sáng mờ ảo
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0;
-        bloomPass.strength = 2.0;
-        bloomPass.radius = 0.5;
+        bloomPass.threshold = 0.2; // Bắt sáng dễ hơn
+        bloomPass.strength = 0.8;  // Sáng vừa phải, không chói
+        bloomPass.radius = 0.8;    // Tỏa rộng mềm mại
 
         composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
+        composer.addPass(renderPass);
         composer.addPass(bloomPass);
 
-        // Tâm ngắm
-        const cursorGeo = new THREE.RingGeometry(0.5, 0.7, 32);
-        const cursorMat = new THREE.MeshBasicMaterial({ color: 0x80bfff, transparent: true, opacity: 0 });
+        // Cursor - Đổi thành vòng tròn mảnh mai
+        const cursorGeo = new THREE.RingGeometry(0.4, 0.45, 64);
+        const cursorMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0, depthTest: false });
         cursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
+        cursorMesh.renderOrder = 9999;
         scene.add(cursorMesh);
 
-        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('resize', onResize);
         window.addEventListener('pointerdown', onPointerDown);
     }
 
-    function onWindowResize() {
+    function onResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
         composer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function onPointerDown(event) {
+    function onPointerDown(e) {
         if (!isModeActive) return;
-        if (event.target.tagName !== 'CANVAS') return;
-
-        mouseVector.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouseVector.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        mouseVector.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseVector.y = -(e.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouseVector, camera);
-
-        const targetZ = 0;
-        const distance = (targetZ - raycaster.ray.origin.z) / raycaster.ray.direction.z;
-
-        if (distance > 0) {
+        const dist = -raycaster.ray.origin.z / raycaster.ray.direction.z;
+        if(dist > 0) {
             const pos = new THREE.Vector3();
-            raycaster.ray.at(distance, pos);
-            const now = performance.now();
-            if (now - lastFireTime > FIRE_COOLDOWN) {
-                launchFirework(pos);
-                lastFireTime = now;
-            }
+            raycaster.ray.at(dist, pos);
+            launchFirework(pos);
         }
     }
 
-    // --- Firework Class ---
-    class Firework {
-        constructor(startPos) {
+    // =============================================================================
+    // CLASSES
+    // =============================================================================
+
+    class Sticker {
+        constructor(pos) {
             this.isDead = false;
-            this.particles = [];
-            const particleCount = 100 + Math.random() * 50;
+            this.life = 2.5; // Bay chậm hơn, lâu hơn
 
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-            const colors = new Float32Array(particleCount * 3);
-            const velocities = [];
-            const color = new THREE.Color();
-            color.setHSL(Math.random(), 1.0, 0.6);
+            const icon = STICKER_ICONS[Math.floor(Math.random() * STICKER_ICONS.length)];
+            const map = createStickerTexture(icon);
+            const mat = new THREE.SpriteMaterial({ map: map, transparent: true, opacity: 0.9 });
+            this.sprite = new THREE.Sprite(mat);
 
-            for (let i = 0; i < particleCount; i++) {
-                positions[i * 3] = startPos.x;
-                positions[i * 3 + 1] = startPos.y;
-                positions[i * 3 + 2] = startPos.z;
-                colors[i * 3] = color.r;
-                colors[i * 3 + 1] = color.g;
-                colors[i * 3 + 2] = color.b;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.5 + Math.random() * 1.5;
-                velocities.push({
-                    x: speed * Math.sin(phi) * Math.cos(theta),
-                    y: speed * Math.sin(phi) * Math.sin(theta),
-                    z: speed * Math.cos(phi),
-                    life: 1.0 + Math.random() * 0.5,
-                    decay: 0.015 + Math.random() * 0.02
-                });
-            }
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const material = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
-            this.points = new THREE.Points(geometry, material);
-            this.velocities = velocities;
-            scene.add(this.points);
+            this.sprite.position.copy(pos);
+            this.sprite.position.x += (Math.random() - 0.5) * 3;
+            this.sprite.position.y += (Math.random() - 0.5) * 3;
+
+            this.sprite.scale.set(5, 5, 1);
+            scene.add(this.sprite);
         }
 
         update(dt) {
-            const positions = this.points.geometry.attributes.position.array;
-            const colors = this.points.geometry.attributes.color.array;
-            let aliveParticles = 0;
-            for (let i = 0; i < this.velocities.length; i++) {
-                const v = this.velocities[i];
-                if (v.life > 0) {
-                    positions[i*3] += v.x; positions[i*3 + 1] += v.y; positions[i*3 + 2] += v.z;
-                    v.y -= 0.02; v.x *= 0.98; v.y *= 0.98; v.z *= 0.98;
-                    v.life -= v.decay; aliveParticles++;
-                    const fade = Math.max(0, v.life);
-                    colors[i*3] *= fade; colors[i*3+1] *= fade; colors[i*3+2] *= fade;
+            this.life -= dt;
+            this.sprite.position.y += dt * 2; // Bay lên từ từ
+            // Hiệu ứng lắc lư nhẹ
+            this.sprite.position.x += Math.sin(this.life * 5) * 0.05;
+
+            if (this.life < 1.0) {
+                this.sprite.material.opacity = this.life;
+            }
+            if (this.life <= 0) {
+                this.isDead = true;
+                scene.remove(this.sprite);
+                this.sprite.material.map.dispose();
+                this.sprite.material.dispose();
+            }
+        }
+    }
+
+    class GiftBox {
+        constructor(pos) {
+            this.isDead = false;
+            const geo = new THREE.BoxGeometry(4.5, 4.5, 4.5); // Nhỏ hơn xíu cho tinh tế
+            const texture = createBoxTexture("🎁", false);
+
+            const mat = new THREE.MeshBasicMaterial({
+                map: texture,
+                color: 0xffffff,
+                toneMapped: false
+            });
+
+            this.mesh = new THREE.Mesh(geo, mat);
+            this.mesh.position.copy(pos);
+
+            this.rot = { x: Math.random()*0.01, y: Math.random()*0.02 }; // Xoay chậm rãi
+            scene.add(this.mesh);
+        }
+        update() {
+            this.mesh.rotation.x += this.rot.x;
+            this.mesh.rotation.y += this.rot.y;
+            this.mesh.position.y += Math.sin(clock.getElapsedTime() + this.mesh.position.x)*0.01; // Nhấp nhô rất nhẹ
+        }
+        destroy() {
+            this.isDead = true;
+            scene.remove(this.mesh);
+            this.mesh.geometry.dispose(); this.mesh.material.dispose();
+            launchFirework(this.mesh.position, true);
+            spawnSticker(this.mesh.position);
+            score++;
+            scoreEl.innerText = score;
+        }
+    }
+
+    class BigBoss {
+        constructor() {
+            this.isDead = false;
+            this.maxHp = 20;
+            this.hp = 20;
+            const geo = new THREE.BoxGeometry(12, 12, 12);
+            // Dùng icon khác cho "Quả Cầu"
+            const texture = createBoxTexture("✨", true);
+
+            const mat = new THREE.MeshBasicMaterial({
+                map: texture,
+                color: 0xffffff,
+                toneMapped: false
+            });
+
+            this.mesh = new THREE.Mesh(geo, mat);
+            this.mesh.position.y = 4;
+            scene.add(this.mesh);
+
+            bossHpBar.style.display = 'block';
+            this.updateUi();
+        }
+        updateUi() {
+            bossHpFill.style.width = (this.hp / this.maxHp * 100) + "%";
+        }
+        takeDamage() {
+            this.hp--;
+            this.updateUi();
+            this.mesh.material.color.setHex(0xFFB6C1); // Nháy màu hồng phấn
+            spawnSticker(this.mesh.position);
+
+            setTimeout(() => {
+                if(!this.isDead) this.mesh.material.color.setHex(0xffffff);
+            }, 100);
+
+            if(this.hp <= 0) this.destroy();
+        }
+        update() {
+            this.mesh.rotation.x += 0.005;
+            this.mesh.rotation.y += 0.01;
+            const s = 1 + Math.sin(clock.getElapsedTime()*3)*0.02; // Thở nhẹ
+            this.mesh.scale.set(s,s,s);
+        }
+        destroy() {
+            this.isDead = true;
+            scene.remove(this.mesh);
+            this.mesh.geometry.dispose(); this.mesh.material.dispose();
+            bossHpBar.style.display = 'none';
+
+            // Pháo hoa kết thúc màn chơi
+            for(let i=0; i<10; i++) {
+                setTimeout(() => launchFirework(new THREE.Vector3((Math.random()-0.5)*20, (Math.random()-0.5)*15, 0), true), i*150);
+            }
+            celebrationText = new CelebrationText();
+            isBossActive = false;
+            nextBossThreshold += 20;
+        }
+    }
+
+    class CelebrationText {
+        constructor() {
+            this.isDead = false;
+            this.life = 6.0; // Hiện lâu hơn chút
+            const tex = createTextTexture("HAPPY NEW YEAR 2026");
+            const geo = new THREE.PlaneGeometry(40, 10);
+            const mat = new THREE.MeshBasicMaterial({
+                map: tex, transparent: true, opacity: 0,
+                depthTest: false, toneMapped: false, side: THREE.DoubleSide
+            });
+            this.mesh = new THREE.Mesh(geo, mat);
+            this.mesh.position.set(0, 2, 10);
+            this.mesh.renderOrder = 999;
+            scene.add(this.mesh);
+        }
+        update(dt) {
+            this.life -= dt;
+            // Fade in/out mượt mà
+            if(this.life > 5.0) this.mesh.material.opacity = (6.0 - this.life);
+            else if(this.life < 1.0) this.mesh.material.opacity = this.life;
+            else this.mesh.material.opacity = 1;
+
+            // Zoom nhẹ slow motion
+            this.mesh.scale.multiplyScalar(1.0005);
+
+            if(this.life <= 0) {
+                this.isDead = true;
+                scene.remove(this.mesh);
+                this.mesh.geometry.dispose(); this.mesh.material.dispose();
+                celebrationText = null;
+            }
+        }
+    }
+
+    class Firework {
+        constructor(pos) {
+            this.isDead = false;
+            const count = 180;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count*3);
+            const colors = new Float32Array(count*3);
+            this.vels = [];
+
+            // PALETTE MÀU PASTEL & GOLD (Thay vì random cầu vồng)
+            const palette = [
+                new THREE.Color('#FFB6C1'), // Light Pink
+                new THREE.Color('#FFD700'), // Gold
+                new THREE.Color('#E0FFFF'), // Light Cyan
+                new THREE.Color('#FFFACD'), // Lemon Chiffon
+                new THREE.Color('#D8BFD8')  // Thistle (Tím nhạt)
+            ];
+            const baseColor = palette[Math.floor(Math.random() * palette.length)];
+
+            for(let i=0; i<count; i++) {
+                positions[i*3] = pos.x; positions[i*3+1] = pos.y; positions[i*3+2] = pos.z;
+
+                // Variate màu nhẹ
+                colors[i*3] = baseColor.r * 2.0; // Tăng sáng cho bloom
+                colors[i*3+1] = baseColor.g * 2.0;
+                colors[i*3+2] = baseColor.b * 2.0;
+
+                const speed = 0.5 + Math.random()*3.0;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+
+                this.vels.push({
+                    x: speed * Math.sin(phi) * Math.cos(theta),
+                    y: speed * Math.sin(phi) * Math.sin(theta),
+                    z: speed * Math.cos(phi),
+                    life: 1.0 + Math.random()*1.0, // Tồn tại lâu hơn
+                    decay: 0.01 + Math.random()*0.01, // Mất đi chậm hơn
+                    flicker: Math.random()
+                });
+            }
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.8, // Hạt nhỏ mịn hơn
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                transparent: true
+            });
+            this.points = new THREE.Points(geo, mat);
+            scene.add(this.points);
+        }
+        update() {
+            const pos = this.points.geometry.attributes.position.array;
+            let alive = 0;
+
+            for(let i=0; i<this.vels.length; i++) {
+                let v = this.vels[i];
+                if(v.life > 0) {
+                    pos[i*3] += v.x; pos[i*3+1] += v.y; pos[i*3+2] += v.z;
+                    v.y -= 0.02; v.x *= 0.96; v.z *= 0.96; // Rơi chậm hơn (Gravity giảm từ 0.03 -> 0.02)
+                    v.life -= v.decay;
+                    alive++;
                 }
             }
             this.points.geometry.attributes.position.needsUpdate = true;
-            this.points.geometry.attributes.color.needsUpdate = true;
-            if (aliveParticles === 0) {
+
+            if(alive === 0) {
                 this.isDead = true;
                 scene.remove(this.points);
-                this.points.geometry.dispose();
-                this.points.material.dispose();
+                this.points.geometry.dispose(); this.points.material.dispose();
             }
         }
     }
 
-    function launchFirework(position) {
-        fireworks.push(new Firework(position));
-        if (fireworkSfx) {
-            const sfx = fireworkSfx.cloneNode();
-            sfx.volume = 0.6;
-            sfx.play().catch(e => {});
-        }
+    function spawnSticker(pos) {
+        stickers.push(new Sticker(pos));
     }
 
-    // =============================================================================
-    // 2. LOGIC TẢI AI & CAMERA
-    // =============================================================================
+    function launchFirework(pos, silent=false) {
+        fireworks.push(new Firework(pos));
 
-    const countdownDisplay = document.getElementById('countdown-display');
-    const startBtn = document.getElementById('start-btn');
-    const loader = document.getElementById('loader');
-    const loadingText = document.getElementById('loading-text');
-
-    let targetDate = new Date();
-    targetDate.setHours(24, 0, 0, 0);
-
-    async function loadAIModel() {
-        try {
-            const vision = await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-            );
-            handLandmarker = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-                    delegate: "GPU"
-                },
-                runningMode: "VIDEO",
-                numHands: 1
-            });
-
-            loader.style.opacity = 0;
-            setTimeout(() => loader.style.display = 'none', 800);
-            countdownDisplay.innerText = "SẴN SÀNG";
-            startBtn.style.display = 'block';
-
-        } catch (error) {
-            console.error(error);
-            loadingText.innerText = "Lỗi tải AI. Vui lòng F5";
-            loadingText.style.color = "red";
-        }
-    }
-
-    startBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (!handLandmarker) { alert("Đang tải AI..."); return; }
-
-        bgMusic.play().catch(console.warn);
-
-        if (navigator.mediaDevices?.getUserMedia) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video = document.getElementById('webcam');
-                video.srcObject = stream;
-                video.addEventListener("loadeddata", () => {
-                    detecting = true;
-                    predictWebcam();
-                    targetDate = new Date().getTime() - 1000;
-                    isModeActive = true;
-                    startBtn.style.display = 'none';
-                    document.getElementById('gesture-hint').style.display = 'block';
-                });
-            } catch (err) {
-                alert("Lỗi Camera. Dùng chuột nhé!");
-                detecting = false; isModeActive = true; startBtn.style.display = 'none';
-            }
+        if(isBossActive && bigBoss && !bigBoss.isDead) {
+            if(pos.distanceTo(bigBoss.mesh.position) < 15) bigBoss.takeDamage();
         } else {
-             alert("Không có Camera. Dùng chuột nhé!");
-             isModeActive = true; startBtn.style.display = 'none';
+            giftBoxes.forEach(b => {
+                if(!b.isDead && pos.distanceTo(b.mesh.position) < 7) b.destroy();
+            });
         }
+
+        if(!silent && fireworkSfx) {
+            const s = fireworkSfx.cloneNode(); s.volume = 0.4; // Giảm âm lượng cho đỡ gắt
+            s.play().catch(()=>{});
+        }
+    }
+
+    function getSafeSpawnPosition() {
+        const minDistance = 12;
+        const maxAttempts = 10;
+
+        for(let i=0; i<maxAttempts; i++) {
+            const x = (Math.random()-0.5)*60;
+            const y = (Math.random()-0.5)*30;
+            const candidate = new THREE.Vector3(x, y, 0);
+
+            let safe = true;
+            for(let box of giftBoxes) {
+                if(candidate.distanceTo(box.mesh.position) < minDistance) {
+                    safe = false; break;
+                }
+            }
+            if (isBossActive && bigBoss && !bigBoss.isDead) {
+                if(candidate.distanceTo(bigBoss.mesh.position) < 18) {
+                    safe = false;
+                }
+            }
+            if(safe) return candidate;
+        }
+        return null;
+    }
+
+    // =============================================================================
+    // GAME FLOW
+    // =============================================================================
+
+    const startBtn = document.getElementById('start-btn');
+    const initLoader = document.getElementById('initial-loader');
+    const gameLoader = document.getElementById('game-loader');
+    const loaderFill = document.getElementById('game-loader-fill');
+    const loaderText = document.getElementById('game-loader-text');
+    const countDisplay = document.getElementById('countdown-display');
+
+    async function loadAI() {
+        try {
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`, delegate: "GPU" },
+                runningMode: "VIDEO", numHands: 1
+            });
+            initLoader.style.opacity = 0;
+            setTimeout(() => initLoader.style.display = 'none', 1000);
+
+            startBtn.style.display = 'block';
+        } catch(e) { console.error(e); alert("Lỗi tải AI: " + e); }
+    }
+
+    startBtn.addEventListener('click', () => {
+        if(!handLandmarker) return;
+        startBtn.style.display = 'none';
+        countDisplay.style.display = 'none';
+        gameLoader.style.display = 'flex';
+
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 2; // Load chậm lại xíu cho có cảm giác chờ đợi
+            loaderFill.style.width = progress + "%";
+            // Random text cho cảm giác pro
+            if(progress < 30) loaderText.innerText = `KẾT NỐI VỆ TINH... ${Math.floor(progress)}%`;
+            else if(progress < 70) loaderText.innerText = `NẠP NĂNG LƯỢNG PHÁO HOA... ${Math.floor(progress)}%`;
+            else loaderText.innerText = `CHUẨN BỊ BÙNG NỔ... ${Math.floor(progress)}%`;
+
+            if(progress >= 100) {
+                clearInterval(interval);
+                gameLoader.style.opacity = 0;
+                setTimeout(() => {
+                    gameLoader.style.display = 'none';
+                    startGame();
+                }, 500);
+            }
+        }, 30);
     });
 
-    function updateCountdown() {
-        if (!isModeActive) return;
-        const now = new Date();
-        const diff = targetDate - now;
-        if (diff <= 0) {
-            countdownDisplay.innerHTML = "HAPPY<br>NEW YEAR 2026!";
-            return;
+    function startGame() {
+        bgMusic.play().catch(()=>{});
+
+        if(navigator.mediaDevices?.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                video = document.getElementById('webcam');
+                video.srcObject = stream;
+                video.addEventListener('loadeddata', () => {
+                    detecting = true;
+                    predict();
+                    isModeActive = true;
+                    // Hiện hint 1 lúc rồi ẩn
+                    const hint = document.getElementById('gesture-hint');
+                    hint.style.display = 'block';
+                    setTimeout(() => { hint.style.opacity = 0; }, 8000);
+                });
+            });
         }
     }
 
-    // =============================================================================
-    // 3. XỬ LÝ NHẬN DIỆN (ĐÃ TỐI ƯU CHO "GIẬT TAY")
-    // =============================================================================
+    async function predict() {
+        if(!detecting) return;
+        if(video.currentTime > 0) {
+            const res = handLandmarker.detectForVideo(video, performance.now());
+            if(res.landmarks && res.landmarks.length > 0) {
+                const lm = res.landmarks[0];
+                const index = lm[8];
 
-    async function predictWebcam() {
-        if (!detecting) return;
-        let startTimeMs = performance.now();
-        if (video.currentTime > 0) {
-            const result = handLandmarker.detectForVideo(video, startTimeMs);
-            processHand(result);
-        }
-        requestAnimationFrame(predictWebcam);
-    }
+                const x = (1 - index.x) * 2 - 1;
+                const y = -(index.y * 2 - 1);
 
-    function processHand(result) {
-        if (result.landmarks && result.landmarks.length > 0) {
-            const lm = result.landmarks[0];
-            const indexTip = lm[8]; // Đầu ngón trỏ
+                mouseVector.set(x, y);
+                raycaster.setFromCamera(mouseVector, camera);
+                const dist = -raycaster.ray.origin.z / raycaster.ray.direction.z;
+                const worldPos = raycaster.ray.at(dist, new THREE.Vector3());
 
-            // 1. Tính toán vị trí 3D để vẽ tâm ngắm
-            const screenX = (1.0 - indexTip.x) * 2 - 1;
-            const screenY = - (indexTip.y * 2 - 1);
-            const vector = new THREE.Vector3(screenX, screenY, 0.5);
-            vector.unproject(camera);
-            const dir = vector.sub(camera.position).normalize();
-            const distance = - camera.position.z / dir.z;
-            const worldPos = camera.position.clone().add(dir.multiplyScalar(distance));
+                cursorMesh.position.copy(worldPos);
+                cursorMesh.material.opacity = 0.6; // Mờ hơn
 
-            // Cập nhật vị trí tâm ngắm (luôn đi theo tay)
-            cursorMesh.position.copy(worldPos);
-            cursorMesh.material.opacity = 0.8;
-            cursorMesh.scale.set(1, 1, 1);
+                const wrist = lm[0];
+                const dIdx = Math.hypot(lm[8].x-wrist.x, lm[8].y-wrist.y);
+                const dMid = Math.hypot(lm[12].x-wrist.x, lm[12].y-wrist.y);
 
-            // 2. Nhận diện tư thế (Chỉ ngón trỏ duỗi)
-            const wrist = lm[0];
-            const dIndex = Math.hypot(lm[8].x - wrist.x, lm[8].y - wrist.y);
-            const dMiddle = Math.hypot(lm[12].x - wrist.x, lm[12].y - wrist.y);
-            const dRing = Math.hypot(lm[16].x - wrist.x, lm[16].y - wrist.y);
-            const dPinky = Math.hypot(lm[20].x - wrist.x, lm[20].y - wrist.y);
-
-            const isIndexExtended = dIndex > 0.1;
-            const isOthersCurled = (dMiddle < dIndex * 0.85) && (dRing < dIndex * 0.85) && (dPinky < dIndex * 0.85);
-
-            // 3. LOGIC GIẬT TAY (JERK DETECTION)
-            if (isIndexExtended && isOthersCurled) {
-                // Đổi màu tâm ngắm thành VÀNG (Sẵn sàng)
-                cursorMesh.material.color.setHex(0xffff00);
-
-                // Tính vận tốc di chuyển của đầu ngón trỏ
-                let velocity = 0;
-                if (previousIndexTip) {
-                    // Khoảng cách giữa khung hình trước và hiện tại
-                    const dx = indexTip.x - previousIndexTip.x;
-                    const dy = indexTip.y - previousIndexTip.y;
-                    velocity = Math.sqrt(dx*dx + dy*dy);
+                if(dIdx > 0.1 && dMid < dIdx*0.8) {
+                    cursorMesh.material.color.setHex(0xFFD700); // Gold
+                    if(previousIndexTip) {
+                        const vel = Math.hypot(index.x-previousIndexTip.x, index.y-previousIndexTip.y);
+                        if(vel > JERK_THRESHOLD && performance.now() - lastFireTime > FIRE_COOLDOWN) {
+                            launchFirework(worldPos);
+                            lastFireTime = performance.now();
+                            cursorMesh.scale.set(2,2,1);
+                            cursorMesh.material.color.setHex(0xFFFFFF); // Flash white
+                            setTimeout(()=>cursorMesh.scale.set(1,1,1), 100);
+                        }
+                    }
+                    previousIndexTip = {x: index.x, y: index.y};
+                } else {
+                    cursorMesh.material.color.setHex(0xF0E68C); // Champagne
+                    previousIndexTip = null;
                 }
-
-                const now = performance.now();
-                // Kích hoạt nếu: Đang duỗi ngón trỏ + Di chuyển nhanh (Giật) + Hết thời gian chờ
-                if (velocity > JERK_THRESHOLD && (now - lastFireTime > FIRE_COOLDOWN)) {
-                    launchFirework(worldPos);
-                    lastFireTime = now;
-
-                    // Hiệu ứng tâm ngắm khi bắn (Phóng to + Đỏ)
-                    cursorMesh.scale.set(2.5, 2.5, 1.0);
-                    cursorMesh.material.color.setHex(0xff0000);
-                }
-
-                // Lưu vị trí hiện tại cho khung hình sau
-                previousIndexTip = { x: indexTip.x, y: indexTip.y };
-
             } else {
-                // Nếu không đúng tư thế, màu XANH NHẠT
-                cursorMesh.material.color.setHex(0x80bfff);
-                previousIndexTip = null; // Reset bộ đếm giật nếu tay không đúng tư thế
+                cursorMesh.material.opacity = 0;
             }
-        } else {
-            if(cursorMesh) cursorMesh.material.opacity = 0;
-            previousIndexTip = null;
         }
-    }
-
-    function init() {
-        initThree();
-        loadAIModel();
-        animate();
+        requestAnimationFrame(predict);
     }
 
     function animate() {
         requestAnimationFrame(animate);
         const dt = clock.getDelta();
-        updateCountdown();
-        for (let i = fireworks.length - 1; i >= 0; i--) {
-            fireworks[i].update(dt);
-            if (fireworks[i].isDead) {
-                fireworks.splice(i, 1);
+        const now = performance.now();
+
+        if(isModeActive) {
+            if(score >= nextBossThreshold && !isBossActive && !celebrationText) {
+                isBossActive = true;
+                bigBoss = new BigBoss();
+            }
+            if(!isBossActive && !celebrationText && now - lastGiftSpawnTime > GIFT_SPAWN_RATE) {
+                if(giftBoxes.length < 6) {
+                    const pos = getSafeSpawnPosition();
+                    if(pos) {
+                        giftBoxes.push(new GiftBox(pos));
+                        lastGiftSpawnTime = now;
+                    }
+                }
             }
         }
+
+        if(bigBoss && isBossActive) bigBoss.update();
+        if(celebrationText) celebrationText.update(dt);
+
+        for(let i=giftBoxes.length-1; i>=0; i--) {
+            giftBoxes[i].update();
+            if(giftBoxes[i].isDead) giftBoxes.splice(i,1);
+        }
+        for(let i=fireworks.length-1; i>=0; i--) {
+            fireworks[i].update();
+            if(fireworks[i].isDead) fireworks.splice(i,1);
+        }
+        for(let i=stickers.length-1; i>=0; i--) {
+            stickers[i].update(dt);
+            if(stickers[i].isDead) stickers.splice(i,1);
+        }
+
         composer.render();
     }
 
-    init();
+    initThree();
+    loadAI();
+    animate();
 </script>
 </body>
 </html>
