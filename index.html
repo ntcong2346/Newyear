@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Fireworks: Gesture & Touch Control</title>
+    <title>Fireworks: Gesture Jerk & Touch</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
             background-color: #000000;
             font-family: 'Arial', sans-serif;
-            touch-action: none; /* Chặn hành vi zoom/scroll mặc định */
-            user-select: none; /* Chặn bôi đen văn bản khi click liên tục */
+            touch-action: none;
+            user-select: none;
         }
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
 
@@ -34,14 +34,6 @@
             -webkit-text-fill-color: transparent;
             text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
             transition: all 0.5s ease;
-        }
-
-        #sub-text {
-            font-size: 2vw;
-            margin-top: 20px;
-            color: #d4af37;
-            opacity: 0.8;
-            margin-bottom: 30px;
         }
 
         #start-btn {
@@ -130,11 +122,10 @@
 
 <div id="ui-layer">
     <div id="countdown-display">LOADING...</div>
-
     <button id="start-btn">Kích Hoạt Ngay</button>
 </div>
 
-<div id="gesture-hint">  Dùng ngón trỏ 👉 HOẶC Click chuột để bắn!  </div>
+<div id="gesture-hint"> 👉 Ngắm bằng ngón trỏ, GIẬT MẠNH tay để bắn! 💥 </div>
 
 <div id="webcam-wrapper">
     <video id="webcam" autoplay playsinline></video>
@@ -150,27 +141,30 @@
     // --- CẤU HÌNH ---
     let isModeActive = false;
     let lastFireTime = 0;
-    let bgStarted = false;
 
+    // Cooldown thấp hơn một chút để cảm giác giật tay nhạy hơn
+    const FIRE_COOLDOWN = 300;
 
-    // TĂNG COOLDOWN: Giúp âm thanh tách bạch, không bị "loạn" (400ms = 0.4 giây mới bắn 1 lần)
-    const FIRE_COOLDOWN = 400;
+    // Ngưỡng giật tay: Nếu ngón tay di chuyển > 5% màn hình trong 1 khung hình thì coi là giật
+    // Tăng số này nếu thấy nhạy quá, giảm nếu thấy khó bắn
+    const JERK_THRESHOLD = 0.05;
+
+    // Biến lưu vị trí ngón trỏ khung hình trước để tính vận tốc
+    let previousIndexTip = null;
 
     // --- ÂM THANH ---
     const bgMusic = new Audio('firework.mp3');
-    bgMusic.loop = false; // CHỈ CHẠY 1 LẦN
-    bgMusic.volume = 0.5; // Tăng âm lượng nền một chút
+    bgMusic.loop = false;
+    bgMusic.volume = 0.5;
 
     const fireworkSfx = new Audio('katty.mp3');
-    fireworkSfx.volume = 0.6; // Âm lượng tiếng nổ
+    fireworkSfx.volume = 0.6;
 
     // --- THREEJS GLOBALS ---
     let scene, camera, renderer, composer;
     let fireworks = [];
     let cursorMesh;
     let clock = new THREE.Clock();
-
-    // Globals cho Click/Touch
     const raycaster = new THREE.Raycaster();
     const mouseVector = new THREE.Vector2();
 
@@ -185,16 +179,13 @@
     function initThree() {
         const container = document.getElementById('canvas-container');
         scene = new THREE.Scene();
-
         scene.background = new THREE.Color(0x05050a);
+
         const loader = new THREE.TextureLoader();
-loader.load(
-    '2Year.png',
-    (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        scene.background = texture;
-    }
-);
+        loader.load('2Year.png', (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            scene.background = texture;
+        });
 
         camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 50;
@@ -214,14 +205,13 @@ loader.load(
         composer.addPass(renderScene);
         composer.addPass(bloomPass);
 
+        // Tâm ngắm
         const cursorGeo = new THREE.RingGeometry(0.5, 0.7, 32);
         const cursorMat = new THREE.MeshBasicMaterial({ color: 0x80bfff, transparent: true, opacity: 0 });
         cursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
         scene.add(cursorMesh);
 
         window.addEventListener('resize', onWindowResize);
-
-        // Lắng nghe sự kiện click / tap
         window.addEventListener('pointerdown', onPointerDown);
     }
 
@@ -232,18 +222,12 @@ loader.load(
         composer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // --- Xử lý Click/Touch ---
     function onPointerDown(event) {
         if (!isModeActive) return;
-
-        // QUAN TRỌNG: Chỉ bắn khi click vào Canvas, không bắn khi click vào UI/Button
-        // Giúp tránh tiếng nổ lung tung khi người dùng đang thao tác khác
         if (event.target.tagName !== 'CANVAS') return;
 
-        // Tính toán tọa độ chuột chuẩn hóa (NDC) từ -1 đến 1
         mouseVector.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouseVector.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
         raycaster.setFromCamera(mouseVector, camera);
 
         const targetZ = 0;
@@ -252,8 +236,6 @@ loader.load(
         if (distance > 0) {
             const pos = new THREE.Vector3();
             raycaster.ray.at(distance, pos);
-
-            // Thêm check cooldown cho cả chuột để tránh spam âm thanh
             const now = performance.now();
             if (now - lastFireTime > FIRE_COOLDOWN) {
                 launchFirework(pos);
@@ -328,16 +310,11 @@ loader.load(
     }
 
     function launchFirework(position) {
-        // Chỉ khi hàm này được gọi thì pháo mới sinh ra và tiếng mới nổ
         fireworks.push(new Firework(position));
-
-        // --- SOUND TRIGGER ---
-        // Sử dụng cloneNode để cho phép nhiều tiếng nổ cùng lúc nếu cần thiết
-        // Nhưng do đã có cooldown ở đầu vào, âm thanh sẽ không bị rối
         if (fireworkSfx) {
             const sfx = fireworkSfx.cloneNode();
             sfx.volume = 0.6;
-            sfx.play().catch(e => { console.log("Audio play blocked"); });
+            sfx.play().catch(e => {});
         }
     }
 
@@ -346,7 +323,6 @@ loader.load(
     // =============================================================================
 
     const countdownDisplay = document.getElementById('countdown-display');
-    const subText = document.getElementById('sub-text');
     const startBtn = document.getElementById('start-btn');
     const loader = document.getElementById('loader');
     const loadingText = document.getElementById('loading-text');
@@ -370,7 +346,6 @@ loader.load(
 
             loader.style.opacity = 0;
             setTimeout(() => loader.style.display = 'none', 800);
-
             countdownDisplay.innerText = "SẴN SÀNG";
             startBtn.style.display = 'block';
 
@@ -382,19 +357,10 @@ loader.load(
     }
 
     startBtn.addEventListener('click', async (e) => {
-        e.stopPropagation(); // Ngăn click xuyên qua button xuống canvas
+        e.stopPropagation();
+        if (!handLandmarker) { alert("Đang tải AI..."); return; }
 
-        if (!handLandmarker) {
-            alert("Đang tải AI, đợi xíu...");
-            return;
-        }
-
-        // Bật nhạc nền (Chỉ 1 lần)
-        bgMusic.play().then(() => {
-            console.log("Music Started - No Loop");
-        }).catch(err => {
-            console.warn("Autoplay prevented", err);
-        });
+        bgMusic.play().catch(console.warn);
 
         if (navigator.mediaDevices?.getUserMedia) {
             try {
@@ -404,36 +370,25 @@ loader.load(
                 video.addEventListener("loadeddata", () => {
                     detecting = true;
                     predictWebcam();
-
                     targetDate = new Date().getTime() - 1000;
                     isModeActive = true;
                     startBtn.style.display = 'none';
                     document.getElementById('gesture-hint').style.display = 'block';
                 });
             } catch (err) {
-                console.error(err);
-                alert("Lỗi Camera. Chuyển sang chế độ Click chuột.");
-                detecting = false;
-                targetDate = new Date().getTime() - 1000;
-                isModeActive = true;
-                startBtn.style.display = 'none';
-                document.getElementById('gesture-hint').style.display = 'block';
+                alert("Lỗi Camera. Dùng chuột nhé!");
+                detecting = false; isModeActive = true; startBtn.style.display = 'none';
             }
         } else {
-             alert("Không tìm thấy Camera. Chế độ Click chuột được kích hoạt!");
-             targetDate = new Date().getTime() - 1000;
-             isModeActive = true;
-             startBtn.style.display = 'none';
-             document.getElementById('gesture-hint').style.display = 'block';
+             alert("Không có Camera. Dùng chuột nhé!");
+             isModeActive = true; startBtn.style.display = 'none';
         }
     });
 
     function updateCountdown() {
         if (!isModeActive) return;
-
         const now = new Date();
         const diff = targetDate - now;
-
         if (diff <= 0) {
             countdownDisplay.innerHTML = "HAPPY<br>NEW YEAR 2026!";
             return;
@@ -441,7 +396,7 @@ loader.load(
     }
 
     // =============================================================================
-    // 3. XỬ LÝ NHẬN DIỆN
+    // 3. XỬ LÝ NHẬN DIỆN (ĐÃ TỐI ƯU CHO "GIẬT TAY")
     // =============================================================================
 
     async function predictWebcam() {
@@ -457,7 +412,9 @@ loader.load(
     function processHand(result) {
         if (result.landmarks && result.landmarks.length > 0) {
             const lm = result.landmarks[0];
-            const indexTip = lm[8];
+            const indexTip = lm[8]; // Đầu ngón trỏ
+
+            // 1. Tính toán vị trí 3D để vẽ tâm ngắm
             const screenX = (1.0 - indexTip.x) * 2 - 1;
             const screenY = - (indexTip.y * 2 - 1);
             const vector = new THREE.Vector3(screenX, screenY, 0.5);
@@ -466,10 +423,12 @@ loader.load(
             const distance = - camera.position.z / dir.z;
             const worldPos = camera.position.clone().add(dir.multiplyScalar(distance));
 
+            // Cập nhật vị trí tâm ngắm (luôn đi theo tay)
             cursorMesh.position.copy(worldPos);
             cursorMesh.material.opacity = 0.8;
             cursorMesh.scale.set(1, 1, 1);
 
+            // 2. Nhận diện tư thế (Chỉ ngón trỏ duỗi)
             const wrist = lm[0];
             const dIndex = Math.hypot(lm[8].x - wrist.x, lm[8].y - wrist.y);
             const dMiddle = Math.hypot(lm[12].x - wrist.x, lm[12].y - wrist.y);
@@ -479,22 +438,42 @@ loader.load(
             const isIndexExtended = dIndex > 0.1;
             const isOthersCurled = (dMiddle < dIndex * 0.85) && (dRing < dIndex * 0.85) && (dPinky < dIndex * 0.85);
 
+            // 3. LOGIC GIẬT TAY (JERK DETECTION)
             if (isIndexExtended && isOthersCurled) {
-                cursorMesh.material.color.setHex(0xff4d4d);
-                cursorMesh.scale.set(1.5, 1.5, 1.5);
+                // Đổi màu tâm ngắm thành VÀNG (Sẵn sàng)
+                cursorMesh.material.color.setHex(0xffff00);
+
+                // Tính vận tốc di chuyển của đầu ngón trỏ
+                let velocity = 0;
+                if (previousIndexTip) {
+                    // Khoảng cách giữa khung hình trước và hiện tại
+                    const dx = indexTip.x - previousIndexTip.x;
+                    const dy = indexTip.y - previousIndexTip.y;
+                    velocity = Math.sqrt(dx*dx + dy*dy);
+                }
 
                 const now = performance.now();
-                // Sử dụng Cooldown 400ms ở đây để tránh AI nhận diện nhầm liên tục gây tiếng nổ
-                if (now - lastFireTime > FIRE_COOLDOWN) {
+                // Kích hoạt nếu: Đang duỗi ngón trỏ + Di chuyển nhanh (Giật) + Hết thời gian chờ
+                if (velocity > JERK_THRESHOLD && (now - lastFireTime > FIRE_COOLDOWN)) {
                     launchFirework(worldPos);
                     lastFireTime = now;
-                    cursorMesh.scale.set(2.0, 2.0, 1.0);
+
+                    // Hiệu ứng tâm ngắm khi bắn (Phóng to + Đỏ)
+                    cursorMesh.scale.set(2.5, 2.5, 1.0);
+                    cursorMesh.material.color.setHex(0xff0000);
                 }
+
+                // Lưu vị trí hiện tại cho khung hình sau
+                previousIndexTip = { x: indexTip.x, y: indexTip.y };
+
             } else {
-                 cursorMesh.material.color.setHex(0xff4d4d);
+                // Nếu không đúng tư thế, màu XANH NHẠT
+                cursorMesh.material.color.setHex(0x80bfff);
+                previousIndexTip = null; // Reset bộ đếm giật nếu tay không đúng tư thế
             }
         } else {
             if(cursorMesh) cursorMesh.material.opacity = 0;
+            previousIndexTip = null;
         }
     }
 
