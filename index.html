@@ -241,11 +241,11 @@
 <div id="boss-health-bar"><div id="boss-health-fill"></div></div>
 
 <div id="ui-layer">
-    <div id="countdown-display">KHOẢNH KHẮC GIAO THỪA<br><span>Cùng CLB Thuyết Trình</span></div>
+    <div id="countdown-display">KHOẢNH KHẮC GIAO THỪA<br><span>Cùng CLB Thuyết trình</span></div>
     <button id="start-btn">CHÂM NGÒI PHÁO HOA</button>
 </div>
 
-<div id="gesture-hint"> Ngón trỏ để ngắm • Giật tay để gửi lời chúc </div>
+<div id="gesture-hint"> Ngón trỏ để ngắm • Giật tay để bắn pháo hoa • ấn vào Hộp quà cũng được nha! </div>
 <div id="webcam-wrapper"><video id="webcam" autoplay playsinline></video></div>
 
 <script type="module">
@@ -258,8 +258,15 @@
     // --- CONFIG ---
     let isModeActive = false;
     let lastFireTime = 0;
+    let celebrationCount = 0;
     const FIRE_COOLDOWN = 300;
     const JERK_THRESHOLD = 0.05;
+    const CELEBRATION_MESSAGES = [
+        "HAPPY NEW YEAR 2026",
+        "BELIEVE IN YOUR DREAMS",
+        "ĐẦU TƯ HPDE NGON NUÔN",
+        "SHINE LIKE A STAR",
+        "CAM ON VI DA DEN" ];
     let previousIndexTip = null;
     let score = 0;
 
@@ -273,8 +280,25 @@
 
     let lastGiftSpawnTime = 0;
     const GIFT_SPAWN_RATE = 1500;
-    const STICKER_ICONS = ["❤️", "✨", "🌸", "🍀", "🎁", "⭐", "🥂", "🎶", "🌿", "💎"];
+    const STICKER_ICONS = [
+        // --- CHỦ ĐỀ TẾT & TRUYỀN THỐNG ---
+        "🧨", "🧧", "🏮", "🌸", "🌼", "🍊", "🍵", "🐉",
 
+        // --- TIỆC TÙNG & QUẨY (PARTY VIBE) ---
+        "🥂", "🍻", "🍾", "🎉", "🎊", "🎈", "🥳", "😎", "💃", "🕺", "🎵", "🎤",
+
+        // --- TÀI LỘC & MAY MẮN (RICH KID STYLE) ---
+        "💰", "💎", "🏆", "🥇", "🍀", "👑", "💵", "💳", "📀",
+
+        // --- TÌNH YÊU & CẢM XÚC ---
+        "❤️", "💖", "🥰", "😍", "💌", "🌹", "💋",
+
+        // --- VŨ TRỤ & PHÉP THUẬT (DREAMY) ---
+        "✨", "⭐", "🌟", "🚀", "🛸", "🌙", "☄️", "🔮",
+
+        // --- BONUS NĂM 2026 (Năm Ngọ - Con Ngựa) ---
+        "🐎", "🦄"
+    ];
     // Audio
     const bgMusic = new Audio('firework.mp3');
     bgMusic.loop = true; bgMusic.volume = 0.4;
@@ -311,7 +335,7 @@
 
         // 2. VIỀN (Vàng Kim / Gold)
         ctx.lineWidth = 30;
-        ctx.strokeStyle = isBoss ? '#FFD700' : '#C5A028'; // Viền tối hơn xíu cho quà thường
+        ctx.strokeStyle = isBoss ? '#877c45' : '#786a3e'; // Viền tối hơn xíu cho quà thường
         ctx.strokeRect(0, 0, 512, 512);
 
         // 3. ICON
@@ -393,8 +417,8 @@
 
         // --- BLOOM CONFIG (Dreamy) ---
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.2;
-        bloomPass.strength = 0.8;
+        bloomPass.threshold = 0.4;
+        bloomPass.strength = 0.5;
         bloomPass.radius = 0.8;
 
         composer = new EffectComposer(renderer);
@@ -507,8 +531,8 @@
     class BigBoss {
         constructor() {
             this.isDead = false;
-            this.maxHp = 20;
-            this.hp = 20;
+            this.maxHp = 8;
+            this.hp = 8;
             const geo = new THREE.BoxGeometry(12, 12, 12);
             const texture = createBoxTexture("✨", true);
 
@@ -519,7 +543,9 @@
             });
 
             this.mesh = new THREE.Mesh(geo, mat);
-            this.mesh.position.y = 4;
+            // Sửa vị trí Y tại đây (số càng nhỏ càng thấp)
+            // Cũ: 4 -> Mới: 1 (Hạ thấp xuống gần giữa màn hình hơn)
+            this.mesh.position.y = 0.8;
             scene.add(this.mesh);
 
             bossHpBar.style.display = 'block';
@@ -552,20 +578,29 @@
             this.mesh.geometry.dispose(); this.mesh.material.dispose();
             bossHpBar.style.display = 'none';
 
-            for(let i=0; i<10; i++) {
+            for(let i=0; i<8; i++) {
                 setTimeout(() => launchFirework(new THREE.Vector3((Math.random()-0.5)*20, (Math.random()-0.5)*15, 0), true), i*150);
             }
-            celebrationText = new CelebrationText();
+            // Tạo text chúc mừng
+            let msgText = "";
+            if (celebrationCount < CELEBRATION_MESSAGES.length) {
+                msgText = CELEBRATION_MESSAGES[celebrationCount];
+            } else {
+                msgText = "HET GAME ROI =)";
+            }
+            celebrationCount++;
+            celebrationText = new CelebrationText(msgText);
+            // Reset trạng thái boss
             isBossActive = false;
             nextBossThreshold += 20;
         }
     }
 
     class CelebrationText {
-        constructor() {
+        constructor(msg) {
             this.isDead = false;
             this.life = 6.0;
-            const tex = createTextTexture("HAPPY NEW YEAR 2026");
+            const tex = createTextTexture(msg);
 
             // LOGIC RESPONSIVE CHO 3D TEXT
             // Desktop: Rộng 40. Mobile: Rộng nhỏ hơn (24) để lọt màn hình
