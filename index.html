@@ -46,30 +46,29 @@
             z-index: 20;
             letter-spacing: 1px;
         }
-        /* Icon quà tinh tế */
         #score-board::before {
             content: '🎁';
             font-size: 20px;
             filter: grayscale(20%) brightness(1.2);
         }
 
-        /* --- BOSS HEALTH BAR -> ENERGY BAR (Soft & Dreamy) --- */
+        /* --- BOSS HEALTH BAR (Responsive) --- */
         #boss-health-bar {
             position: absolute;
             top: 100px;
             left: 50%;
             transform: translateX(-50%);
-            width: 450px;
-            height: 12px; /* Mỏng hơn, thanh thoát hơn */
+            width: 450px; /* Default desktop width */
+            max-width: 90%; /* Mobile safe width */
+            height: 12px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             display: none;
             z-index: 20;
-            overflow: visible; /* Để hiện text bên ngoài */
+            overflow: visible;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        /* Tên Boss - Giờ là "Quả Cầu Năm Mới" */
         #boss-health-bar::before {
             content: '✨ QUẢ CẦU NĂM MỚI ✨';
             position: absolute;
@@ -88,26 +87,26 @@
             width: 100%;
             height: 100%;
             border-radius: 10px;
-            /* Gradient Pastel: Tím -> Hồng -> Vàng */
             background: linear-gradient(90deg, #D8BFD8, #FFB6C1, #F0E68C);
             box-shadow: 0 0 15px rgba(255, 182, 193, 0.6);
             transition: width 0.3s ease-out;
         }
 
-        /* --- START SCREEN (Cinematic) --- */
+        /* --- START SCREEN (Responsive Text) --- */
         #countdown-display {
             font-family: 'Cinzel', serif;
-            font-size: 6vw; /* Nhỏ hơn xíu để sang */
-            color: #FFFFF0; /* Ivory White */
+            font-size: 5vw;
+            color: #FFFFF0;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
             text-align: center;
             line-height: 1.4;
             margin-bottom: 40px;
             font-weight: 400;
+            padding: 0 20px;
         }
         #countdown-display span {
             font-family: 'Dancing Script', cursive;
-            font-size: 4vw;
+            font-size: 3.5vw;
             color: #F0E68C;
             display: block;
             margin-top: 10px;
@@ -131,14 +130,41 @@
             transition: all 0.4s ease;
             backdrop-filter: blur(4px);
         }
-
         #start-btn:hover {
             background: rgba(240, 230, 140, 0.15);
             box-shadow: 0 0 30px rgba(240, 230, 140, 0.4);
-            letter-spacing: 5px; /* Hiệu ứng mở rộng chữ */
+            letter-spacing: 5px;
         }
 
-        /* --- LOADERS (Minimal) --- */
+        /* --- MOBILE OPTIMIZATION --- */
+        @media (max-width: 768px) {
+            #score-board {
+                top: 20px; right: 20px;
+                font-size: 18px; /* Nhỏ hơn trên mobile */
+                padding: 5px 15px;
+            }
+            #boss-health-bar {
+                top: 85px;
+                /* width đã có max-width: 90% lo */
+            }
+            #boss-health-bar::before {
+                font-size: 14px; /* Tên boss nhỏ lại xíu */
+                letter-spacing: 2px;
+            }
+            #countdown-display {
+                font-size: 32px; /* Cố định px để không bị quá nhỏ */
+            }
+            #countdown-display span {
+                font-size: 24px;
+            }
+            #start-btn {
+                padding: 12px 40px;
+                font-size: 16px;
+                width: 80%; /* Nút bấm to dễ ấn */
+            }
+        }
+
+        /* --- LOADERS --- */
         #game-loader {
             position: absolute; inset: 0;
             background: #050A14;
@@ -146,7 +172,7 @@
             flex-direction: column; justify-content: center; align-items: center;
         }
         .game-loader-bar {
-            width: 300px; height: 2px; /* Line mỏng */
+            width: 300px; height: 2px;
             background: rgba(255,255,255,0.1);
             margin-bottom: 20px;
         }
@@ -164,7 +190,7 @@
         #initial-loader {
             position: absolute; inset: 0; background: #050A14; z-index: 300;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #F0E68C; transition: opacity 1s ease; /* Fade chậm hơn */
+            color: #F0E68C; transition: opacity 1s ease;
             font-family: 'Cinzel', serif; letter-spacing: 2px;
         }
         .spinner {
@@ -180,6 +206,7 @@
             letter-spacing: 1px;
             z-index: 11; pointer-events: none; display: none;
             text-shadow: 0 0 10px rgba(255,255,255,0.2);
+            padding: 0 10px;
         }
 
         #webcam-wrapper { position: absolute; opacity: 0; pointer-events: none; }
@@ -278,21 +305,20 @@
         canvas.width = 512; canvas.height = 512;
         const ctx = canvas.getContext('2d');
 
-        // 1. NỀN (Trắng Ngà / Cream)
-        ctx.fillStyle = '#FFFFF0';
+        // 1. NỀN (GIẢM SÁNG - Darker Cream)
+        ctx.fillStyle = '#E6D8AD'; // Thay vì #FFFFF0 (Trắng quá)
         ctx.fillRect(0, 0, 512, 512);
 
         // 2. VIỀN (Vàng Kim / Gold)
-        ctx.lineWidth = 30; // Viền mỏng hơn chút cho tinh tế
-        // Nếu là Boss (Quả cầu) thì viền đậm hơn
-        ctx.strokeStyle = isBoss ? '#FFD700' : '#D4AF37';
+        ctx.lineWidth = 30;
+        ctx.strokeStyle = isBoss ? '#FFD700' : '#C5A028'; // Viền tối hơn xíu cho quà thường
         ctx.strokeRect(0, 0, 512, 512);
 
         // 3. ICON
         ctx.font = '280px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#333'; // Màu chữ đậm nhẹ
+        ctx.fillStyle = '#333';
         ctx.fillText(emoji, 256, 260);
 
         const tex = new THREE.CanvasTexture(canvas);
@@ -306,7 +332,6 @@
         const ctx = canvas.getContext('2d');
         ctx.font = '200px serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        // Thêm shadow trắng cho sticker nổi trên nền tối
         ctx.shadowColor = "white";
         ctx.shadowBlur = 10;
         ctx.fillText(emoji, 128, 128);
@@ -328,14 +353,13 @@
 
         // Gradient Vàng Kim
         const g = ctx.createLinearGradient(0,0,0,512);
-        g.addColorStop(0, "#FFFFF0"); // Trắng ngà
-        g.addColorStop(0.5, "#FFD700"); // Vàng
-        g.addColorStop(1, "#DAA520"); // Vàng đậm
+        g.addColorStop(0, "#FFFFF0");
+        g.addColorStop(0.5, "#FFD700");
+        g.addColorStop(1, "#DAA520");
         ctx.fillStyle = g;
 
         ctx.fillText(text, 1024, 256);
 
-        // Outline mỏng
         ctx.lineWidth = 2;
         ctx.strokeStyle = "rgba(255,255,255,0.5)";
         ctx.strokeText(text, 1024, 256);
@@ -348,14 +372,12 @@
     // =============================================================================
     function initThree() {
         scene = new THREE.Scene();
-        // Nền tối Midnight Blue để tôn pháo hoa
         scene.background = new THREE.Color(0x050A14);
 
         const loader = new THREE.TextureLoader();
         loader.load('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2072&auto=format&fit=crop', (tex) => {
             tex.colorSpace = THREE.SRGBColorSpace;
             scene.background = tex;
-            // Làm tối nền đi nhiều để tạo không gian đêm sâu thẳm
             scene.backgroundIntensity = 0.15;
         });
 
@@ -370,17 +392,15 @@
         const renderPass = new RenderPass(scene, camera);
 
         // --- BLOOM CONFIG (Dreamy) ---
-        // Radius lớn hơn để tạo quầng sáng mờ ảo
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.2; // Bắt sáng dễ hơn
-        bloomPass.strength = 0.8;  // Sáng vừa phải, không chói
-        bloomPass.radius = 0.8;    // Tỏa rộng mềm mại
+        bloomPass.threshold = 0.2;
+        bloomPass.strength = 0.8;
+        bloomPass.radius = 0.8;
 
         composer = new EffectComposer(renderer);
         composer.addPass(renderPass);
         composer.addPass(bloomPass);
 
-        // Cursor - Đổi thành vòng tròn mảnh mai
         const cursorGeo = new THREE.RingGeometry(0.4, 0.45, 64);
         const cursorMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0, depthTest: false });
         cursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
@@ -418,7 +438,7 @@
     class Sticker {
         constructor(pos) {
             this.isDead = false;
-            this.life = 2.5; // Bay chậm hơn, lâu hơn
+            this.life = 2.5;
 
             const icon = STICKER_ICONS[Math.floor(Math.random() * STICKER_ICONS.length)];
             const map = createStickerTexture(icon);
@@ -435,8 +455,7 @@
 
         update(dt) {
             this.life -= dt;
-            this.sprite.position.y += dt * 2; // Bay lên từ từ
-            // Hiệu ứng lắc lư nhẹ
+            this.sprite.position.y += dt * 2;
             this.sprite.position.x += Math.sin(this.life * 5) * 0.05;
 
             if (this.life < 1.0) {
@@ -454,25 +473,25 @@
     class GiftBox {
         constructor(pos) {
             this.isDead = false;
-            const geo = new THREE.BoxGeometry(4.5, 4.5, 4.5); // Nhỏ hơn xíu cho tinh tế
+            const geo = new THREE.BoxGeometry(4.5, 4.5, 4.5);
             const texture = createBoxTexture("🎁", false);
 
             const mat = new THREE.MeshBasicMaterial({
                 map: texture,
-                color: 0xffffff,
+                color: 0xcccccc, // GIẢM ĐỘ SÁNG (Xám nhạt thay vì Trắng tinh)
                 toneMapped: false
             });
 
             this.mesh = new THREE.Mesh(geo, mat);
             this.mesh.position.copy(pos);
 
-            this.rot = { x: Math.random()*0.01, y: Math.random()*0.02 }; // Xoay chậm rãi
+            this.rot = { x: Math.random()*0.01, y: Math.random()*0.02 };
             scene.add(this.mesh);
         }
         update() {
             this.mesh.rotation.x += this.rot.x;
             this.mesh.rotation.y += this.rot.y;
-            this.mesh.position.y += Math.sin(clock.getElapsedTime() + this.mesh.position.x)*0.01; // Nhấp nhô rất nhẹ
+            this.mesh.position.y += Math.sin(clock.getElapsedTime() + this.mesh.position.x)*0.01;
         }
         destroy() {
             this.isDead = true;
@@ -491,12 +510,11 @@
             this.maxHp = 20;
             this.hp = 20;
             const geo = new THREE.BoxGeometry(12, 12, 12);
-            // Dùng icon khác cho "Quả Cầu"
             const texture = createBoxTexture("✨", true);
 
             const mat = new THREE.MeshBasicMaterial({
                 map: texture,
-                color: 0xffffff,
+                color: 0xeeeeee, // Giảm nhẹ độ sáng
                 toneMapped: false
             });
 
@@ -513,11 +531,11 @@
         takeDamage() {
             this.hp--;
             this.updateUi();
-            this.mesh.material.color.setHex(0xFFB6C1); // Nháy màu hồng phấn
+            this.mesh.material.color.setHex(0xFFB6C1);
             spawnSticker(this.mesh.position);
 
             setTimeout(() => {
-                if(!this.isDead) this.mesh.material.color.setHex(0xffffff);
+                if(!this.isDead) this.mesh.material.color.setHex(0xeeeeee);
             }, 100);
 
             if(this.hp <= 0) this.destroy();
@@ -525,7 +543,7 @@
         update() {
             this.mesh.rotation.x += 0.005;
             this.mesh.rotation.y += 0.01;
-            const s = 1 + Math.sin(clock.getElapsedTime()*3)*0.02; // Thở nhẹ
+            const s = 1 + Math.sin(clock.getElapsedTime()*3)*0.02;
             this.mesh.scale.set(s,s,s);
         }
         destroy() {
@@ -534,7 +552,6 @@
             this.mesh.geometry.dispose(); this.mesh.material.dispose();
             bossHpBar.style.display = 'none';
 
-            // Pháo hoa kết thúc màn chơi
             for(let i=0; i<10; i++) {
                 setTimeout(() => launchFirework(new THREE.Vector3((Math.random()-0.5)*20, (Math.random()-0.5)*15, 0), true), i*150);
             }
@@ -547,9 +564,16 @@
     class CelebrationText {
         constructor() {
             this.isDead = false;
-            this.life = 6.0; // Hiện lâu hơn chút
+            this.life = 6.0;
             const tex = createTextTexture("HAPPY NEW YEAR 2026");
-            const geo = new THREE.PlaneGeometry(40, 10);
+
+            // LOGIC RESPONSIVE CHO 3D TEXT
+            // Desktop: Rộng 40. Mobile: Rộng nhỏ hơn (24) để lọt màn hình
+            const aspect = camera.aspect;
+            const width = aspect < 1 ? 24 : 40;
+            const height = width / 4; // Giữ tỷ lệ 4:1 của texture
+
+            const geo = new THREE.PlaneGeometry(width, height);
             const mat = new THREE.MeshBasicMaterial({
                 map: tex, transparent: true, opacity: 0,
                 depthTest: false, toneMapped: false, side: THREE.DoubleSide
@@ -561,12 +585,10 @@
         }
         update(dt) {
             this.life -= dt;
-            // Fade in/out mượt mà
             if(this.life > 5.0) this.mesh.material.opacity = (6.0 - this.life);
             else if(this.life < 1.0) this.mesh.material.opacity = this.life;
             else this.mesh.material.opacity = 1;
 
-            // Zoom nhẹ slow motion
             this.mesh.scale.multiplyScalar(1.0005);
 
             if(this.life <= 0) {
@@ -587,21 +609,19 @@
             const colors = new Float32Array(count*3);
             this.vels = [];
 
-            // PALETTE MÀU PASTEL & GOLD (Thay vì random cầu vồng)
             const palette = [
-                new THREE.Color('#FFB6C1'), // Light Pink
-                new THREE.Color('#FFD700'), // Gold
-                new THREE.Color('#E0FFFF'), // Light Cyan
-                new THREE.Color('#FFFACD'), // Lemon Chiffon
-                new THREE.Color('#D8BFD8')  // Thistle (Tím nhạt)
+                new THREE.Color('#FFB6C1'),
+                new THREE.Color('#FFD700'),
+                new THREE.Color('#E0FFFF'),
+                new THREE.Color('#FFFACD'),
+                new THREE.Color('#D8BFD8')
             ];
             const baseColor = palette[Math.floor(Math.random() * palette.length)];
 
             for(let i=0; i<count; i++) {
                 positions[i*3] = pos.x; positions[i*3+1] = pos.y; positions[i*3+2] = pos.z;
 
-                // Variate màu nhẹ
-                colors[i*3] = baseColor.r * 2.0; // Tăng sáng cho bloom
+                colors[i*3] = baseColor.r * 2.0;
                 colors[i*3+1] = baseColor.g * 2.0;
                 colors[i*3+2] = baseColor.b * 2.0;
 
@@ -613,8 +633,8 @@
                     x: speed * Math.sin(phi) * Math.cos(theta),
                     y: speed * Math.sin(phi) * Math.sin(theta),
                     z: speed * Math.cos(phi),
-                    life: 1.0 + Math.random()*1.0, // Tồn tại lâu hơn
-                    decay: 0.01 + Math.random()*0.01, // Mất đi chậm hơn
+                    life: 1.0 + Math.random()*1.0,
+                    decay: 0.01 + Math.random()*0.01,
                     flicker: Math.random()
                 });
             }
@@ -622,7 +642,7 @@
             geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
             const mat = new THREE.PointsMaterial({
-                size: 0.8, // Hạt nhỏ mịn hơn
+                size: 0.8,
                 vertexColors: true,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
@@ -639,7 +659,7 @@
                 let v = this.vels[i];
                 if(v.life > 0) {
                     pos[i*3] += v.x; pos[i*3+1] += v.y; pos[i*3+2] += v.z;
-                    v.y -= 0.02; v.x *= 0.96; v.z *= 0.96; // Rơi chậm hơn (Gravity giảm từ 0.03 -> 0.02)
+                    v.y -= 0.02; v.x *= 0.96; v.z *= 0.96;
                     v.life -= v.decay;
                     alive++;
                 }
@@ -670,7 +690,7 @@
         }
 
         if(!silent && fireworkSfx) {
-            const s = fireworkSfx.cloneNode(); s.volume = 0.4; // Giảm âm lượng cho đỡ gắt
+            const s = fireworkSfx.cloneNode(); s.volume = 0.4;
             s.play().catch(()=>{});
         }
     }
@@ -733,9 +753,8 @@
 
         let progress = 0;
         const interval = setInterval(() => {
-            progress += 2; // Load chậm lại xíu cho có cảm giác chờ đợi
+            progress += 2;
             loaderFill.style.width = progress + "%";
-            // Random text cho cảm giác pro
             if(progress < 30) loaderText.innerText = `KẾT NỐI VỆ TINH... ${Math.floor(progress)}%`;
             else if(progress < 70) loaderText.innerText = `NẠP NĂNG LƯỢNG PHÁO HOA... ${Math.floor(progress)}%`;
             else loaderText.innerText = `CHUẨN BỊ BÙNG NỔ... ${Math.floor(progress)}%`;
@@ -762,7 +781,6 @@
                     detecting = true;
                     predict();
                     isModeActive = true;
-                    // Hiện hint 1 lúc rồi ẩn
                     const hint = document.getElementById('gesture-hint');
                     hint.style.display = 'block';
                     setTimeout(() => { hint.style.opacity = 0; }, 8000);
@@ -788,27 +806,27 @@
                 const worldPos = raycaster.ray.at(dist, new THREE.Vector3());
 
                 cursorMesh.position.copy(worldPos);
-                cursorMesh.material.opacity = 0.6; // Mờ hơn
+                cursorMesh.material.opacity = 0.6;
 
                 const wrist = lm[0];
                 const dIdx = Math.hypot(lm[8].x-wrist.x, lm[8].y-wrist.y);
                 const dMid = Math.hypot(lm[12].x-wrist.x, lm[12].y-wrist.y);
 
                 if(dIdx > 0.1 && dMid < dIdx*0.8) {
-                    cursorMesh.material.color.setHex(0xFFD700); // Gold
+                    cursorMesh.material.color.setHex(0xFFD700);
                     if(previousIndexTip) {
                         const vel = Math.hypot(index.x-previousIndexTip.x, index.y-previousIndexTip.y);
                         if(vel > JERK_THRESHOLD && performance.now() - lastFireTime > FIRE_COOLDOWN) {
                             launchFirework(worldPos);
                             lastFireTime = performance.now();
                             cursorMesh.scale.set(2,2,1);
-                            cursorMesh.material.color.setHex(0xFFFFFF); // Flash white
+                            cursorMesh.material.color.setHex(0xFFFFFF);
                             setTimeout(()=>cursorMesh.scale.set(1,1,1), 100);
                         }
                     }
                     previousIndexTip = {x: index.x, y: index.y};
                 } else {
-                    cursorMesh.material.color.setHex(0xF0E68C); // Champagne
+                    cursorMesh.material.color.setHex(0xF0E68C);
                     previousIndexTip = null;
                 }
             } else {
